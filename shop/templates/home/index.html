@@ -1,0 +1,1106 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+   <meta charset="UTF-8">
+   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+   <meta name="viewport" content="width=device-width, initial-scale=1">
+   <title>Sarab - Fast Food & Restaurant</title>
+
+   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Poppins:wght@300;400;500;600;700&family=Dancing+Script:wght@700&display=swap" rel="stylesheet"/>
+   <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet"/>
+   <link href="{% static 'css/aos.css' %}" rel="stylesheet"/>
+   <link href="{% static 'css/swiper-bundle.min.css' %}" rel="stylesheet"/>
+   <link rel="stylesheet" href="{% static 'css/all.min.css' %}"/>
+   <link rel="stylesheet" href="{% static 'css/magnific-popup.css' %}"/>
+   <link rel="stylesheet" href="{% static 'css/style.css' %}"/>
+</head>
+
+<body>
+
+<!-- ============================================================
+   DJANGO MESSAGES — muvaffaqiyat/xato xabarlari
+   ============================================================ -->
+{% if messages %}
+<div style="position:fixed;top:80px;right:20px;z-index:9999;min-width:300px;">
+   {% for msg in messages %}
+   <div class="alert alert-{{ msg.tags }} alert-dismissible fade show shadow" role="alert">
+      {{ msg }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+   </div>
+   {% endfor %}
+</div>
+{% endif %}
+
+<!-- ============================================================
+   TOP BAR
+   ============================================================ -->
+<div id="topbar">
+   <div class="container">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+         <div class="top-contact d-flex flex-wrap">
+            <span><i class="fas fa-phone-alt"></i>+1 (800) 123-4567</span>
+            <span><i class="fas fa-envelope"></i>hello@sarabfood.com</span>
+            <span><i class="fas fa-map-marker-alt"></i>42 Flavor Street, NY</span>
+         </div>
+         <div class="d-flex align-items-center gap-3">
+            <span class="ttag"><i class="fas fa-fire me-1"></i>Free Delivery Today!</span>
+            <div class="tsoc">
+               <a href="#"><i class="fab fa-facebook-f"></i></a>
+               <a href="#"><i class="fab fa-instagram"></i></a>
+               <a href="#"><i class="fab fa-tiktok"></i></a>
+               <a href="#"><i class="fab fa-youtube"></i></a>
+            </div>
+         </div>
+      </div>
+   </div>
+</div>
+
+<!-- ============================================================
+   NAVBAR
+   ============================================================ -->
+<nav class="navbar navbar-expand-lg" id="nav">
+   <div class="container">
+      <a class="navbar-brand" href="#">
+         <div class="blogo">
+            <div class="bico"><i class="fas fa-utensils"></i></div>
+            <div>
+               <div class="bname">Sar<span>ab</span></div>
+               <div class="bsub">Fast Food & Restaurant</div>
+            </div>
+         </div>
+      </a>
+      <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navmenu">
+         <i class="fas fa-bars" style="color:var(--primary);font-size:1.35rem;"></i>
+      </button>
+      <div class="collapse navbar-collapse" id="navmenu">
+         <ul class="navbar-nav mx-auto">
+            <li class="nav-item"><a class="nav-link active" href="#hero">Home</a></li>
+            <li class="nav-item"><a class="nav-link" href="#about">About</a></li>
+            <li class="nav-item"><a class="nav-link" href="#menu">Menu</a></li>
+            <li class="nav-item"><a class="nav-link" href="#chefs">Chefs</a></li>
+            <li class="nav-item"><a class="nav-link" href="#reservation">Reservation</a></li>
+            <li class="nav-item"><a class="nav-link" href="#testimonials">Reviews</a></li>
+            <li class="nav-item"><a class="nav-link" href="#contact-section">Contact</a></li>
+         </ul>
+         <div class="d-flex align-items-center gap-1">
+            <button id="navSearchBtn" title="Search"><i class="fas fa-search"></i></button>
+
+            <a href="{% url 'shop:cart' %}" id="navCartBtn" title="Savat" style="position:relative;">
+               <i class="fas fa-shopping-cart"></i>
+               {% if cart_count > 0 %}
+                  <span id="navCartBadge" style="position:absolute;top:-6px;right:-6px;background:var(--primary);color:#fff;font-size:.62rem;font-weight:700;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;">{{ cart_count }}</span>
+               {% endif %}
+            </a>
+
+            {% if user.is_authenticated %}
+               <div class="dropdown">
+                  <button class="dropdown-toggle" type="button" data-bs-toggle="dropdown" style="background:none;border:none;color:inherit;display:flex;align-items:center;gap:6px;padding:8px 10px;">
+                     <i class="fas fa-user-circle"></i>
+                  </button>
+                  <ul class="dropdown-menu dropdown-menu-end">
+                     <li><span class="dropdown-item-text small text-muted">👋 {{ user.username }}</span></li>
+                     <li><hr class="dropdown-divider"></li>
+                     <li><a class="dropdown-item" href="{% url 'shop:my_orders' %}"><i class="fas fa-receipt me-2"></i>Buyurtmalarim</a></li>
+                     <li><a class="dropdown-item" href="{% url 'shop:logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Chiqish</a></li>
+                  </ul>
+               </div>
+            {% else %}
+               <a href="{% url 'shop:login' %}" class="nav-link" title="Kirish"><i class="fas fa-user"></i></a>
+            {% endif %}
+
+            <a href="#menu" class="nav-link nav-cta"><i class="fas fa-shopping-bag me-1"></i>Order Now</a>
+         </div>
+      </div>
+   </div>
+</nav>
+
+<!-- ============================================================
+   SEARCH OVERLAY
+   ============================================================ -->
+<div id="searchOv">
+   <button class="sovclose" id="searchClose"><i class="fas fa-times"></i></button>
+   <div class="sovbox">
+      <h4>What are you craving today?</h4>
+      <div class="sovinput">
+         <input type="text" id="searchInput" placeholder="Search burgers, pizza, chicken..." autocomplete="off"/>
+         <button><i class="fas fa-search"></i></button>
+      </div>
+      <div class="sovcats">
+         <div class="sovcat active" data-cat="all">
+            <img src="{% static 'img/menu/1.jpg' %}" alt=""/>All Items
+         </div>
+         {% for cat in categories %}
+         <div class="sovcat" data-cat="{{ cat.slug }}">
+            {% if cat.image %}<img src="{{ cat.image.url }}" alt=""/>{% endif %}
+            {{ cat.name }}
+         </div>
+         {% endfor %}
+      </div>
+      <div class="sovtrend">
+         <p><i class="fas fa-fire me-1" style="color:var(--secondary);"></i>Trending Searches</p>
+         <span class="ttag">Smash Burger</span>
+         <span class="ttag">Nashville Chicken</span>
+         <span class="ttag">Truffle Pizza</span>
+         <span class="ttag">Lava Cake</span>
+         <span class="ttag">Loaded Fries</span>
+         <span class="ttag">Mango Shake</span>
+      </div>
+   </div>
+</div>
+
+<!-- ============================================================
+   HERO
+   ============================================================ -->
+<section id="hero">
+   <div class="hs hs1"></div>
+   <div class="hs hs2"></div>
+   <div class="hbgtxt">FOOD</div>
+   <div class="container">
+      <div class="row align-items-center g-5" style="min-height:88vh;">
+         <div class="col-lg-6">
+            <div class="hbadge">
+               <div class="hbi"><i class="fas fa-star"></i></div>
+               <span>#1 Rated Fast Food Restaurant in New York</span>
+            </div>
+            <h1 class="htitle">Delicious <span class="hl">Fast Food</span><br/>for Every Moment</h1>
+            <p class="hdesc">Experience bold flavors crafted from premium ingredients. From crispy burgers to gourmet pizzas - every bite is an adventure worth savoring.</p>
+            <div class="d-flex flex-wrap gap-3 mb-2">
+               <a href="#menu" class="btn-red"><i class="fas fa-utensils"></i>Explore Menu</a>
+               <a href="https://www.youtube.com/watch?v=RXv_uIN6e-Y" class="magnific_popup btn-play popup-youtube">
+                  <div class="pico"><i class="fas fa-play"></i></div>
+                  <span>Watch Our Story</span>
+               </a>
+            </div>
+            <div class="hstats d-flex gap-3 flex-wrap mt-4">
+               <div class="hstat"><span class="snum">850<em>+</em></span><small>Happy Customers</small></div>
+               <div class="sdiv"></div>
+               <div class="hstat"><span class="snum">120<em>+</em></span><small>Menu Items</small></div>
+               <div class="sdiv"></div>
+               <div class="hstat"><span class="snum">15<em>+</em></span><small>Expert Chefs</small></div>
+               <div class="sdiv"></div>
+               <div class="hstat"><span class="snum">12<em>yr</em></span><small>Experience</small></div>
+            </div>
+         </div>
+         <div class="col-lg-6">
+            <div style="position:relative;text-align:center;">
+               <div class="hcircle">
+                  <img src="{% static 'img/banner-img.jpg' %}" alt="Burger"/>
+               </div>
+               <div class="fcard fc1">
+                  <div class="fcoi r"><i class="fas fa-fire"></i></div>
+                  <div><span class="fcnum">Hot Deal</span><span class="fcsm">30% off today</span></div>
+               </div>
+               <div class="fcard fc2">
+                  <div class="fcoi y"><i class="fas fa-star"></i></div>
+                  <div><span class="fcnum">4.9/5</span><span class="fcsm">2k+ reviews</span></div>
+               </div>
+               <div class="fcard fc3">
+                  <div class="fcoi g"><i class="fas fa-clock"></i></div>
+                  <div><span class="fcnum">20 min</span><span class="fcsm">Fast delivery</span></div>
+               </div>
+            </div>
+         </div>
+      </div>
+   </div>
+</section>
+
+<!-- MARQUEE -->
+<div class="mqsec">
+   <div class="mqtrack">
+      <div class="mqitem"><i class="fas fa-circle"></i>Crispy Fried Chicken</div>
+      <div class="mqitem"><i class="fas fa-circle"></i>Gourmet Burgers</div>
+      <div class="mqitem"><i class="fas fa-circle"></i>Artisan Pizzas</div>
+      <div class="mqitem"><i class="fas fa-circle"></i>Fresh Wraps &amp; Rolls</div>
+      <div class="mqitem"><i class="fas fa-circle"></i>Loaded Fries</div>
+      <div class="mqitem"><i class="fas fa-circle"></i>Ice Cream Shakes</div>
+      <div class="mqitem"><i class="fas fa-circle"></i>Grilled Sandwiches</div>
+      <div class="mqitem"><i class="fas fa-circle"></i>Crispy Fried Chicken</div>
+      <div class="mqitem"><i class="fas fa-circle"></i>Gourmet Burgers</div>
+      <div class="mqitem"><i class="fas fa-circle"></i>Artisan Pizzas</div>
+      <div class="mqitem"><i class="fas fa-circle"></i>Fresh Wraps &amp; Rolls</div>
+      <div class="mqitem"><i class="fas fa-circle"></i>Loaded Fries</div>
+      <div class="mqitem"><i class="fas fa-circle"></i>Ice Cream Shakes</div>
+      <div class="mqitem"><i class="fas fa-circle"></i>Grilled Sandwiches</div>
+   </div>
+</div>
+
+<!-- ============================================================
+   CATEGORY  —  DB dan kategoriyalar
+   ============================================================ -->
+<section id="category">
+   <div class="container">
+      <div class="text-center mb-5" data-aos="fade-up">
+         <span class="slbl">What We Offer</span>
+         <h2 class="stitle">Browse by <span>Category</span></h2>
+         <div class="sline"></div>
+         <p class="sdesc mx-auto" style="max-width:480px;">From sizzling burgers to exotic world cuisines - find your favourite in our menu</p>
+      </div>
+      <div class="row g-3 justify-content-center">
+
+         <!-- "All Items" — har doim birinchi -->
+         <div class="col-6 col-sm-4 col-md-3 col-lg-2" data-aos="zoom-in">
+            <div class="catcard active" data-filter="all">
+               <img class="catimg" src="{% static 'img/category/1.jpg' %}" alt=""/>
+               <div class="catnm">All Items</div>
+               <div class="catct">{{ menu_items.count }} items</div>
+            </div>
+         </div>
+
+         <!-- DB dan kelgan kategoriyalar -->
+         {% for cat in categories %}
+         <div class="col-6 col-sm-4 col-md-3 col-lg-2" data-aos="zoom-in" data-aos-delay="{{ forloop.counter0|add:1 }}0">
+            <div class="catcard" data-filter="{{ cat.slug }}">
+               {% if cat.image %}
+                  <img class="catimg" src="{{ cat.image.url }}" alt="{{ cat.name }}"/>
+               {% else %}
+                  <img class="catimg" src="{% static 'img/category/1.jpg' %}" alt="{{ cat.name }}"/>
+               {% endif %}
+               <div class="catnm">{{ cat.name }}</div>
+               <div class="catct">{{ cat.items.count }} items</div>
+            </div>
+         </div>
+         {% endfor %}
+
+      </div>
+   </div>
+</section>
+
+<!-- ============================================================
+   ABOUT
+   ============================================================ -->
+<section id="about">
+   <div class="container">
+      <div class="row align-items-center g-5">
+         <div class="col-lg-5" data-aos="fade-right">
+            <div class="astack">
+               <div class="aexp"><span class="anum">12+</span><small>Years of<br/>Excellence</small></div>
+               <div class="amain"><img src="{% static 'img/about1.jpg' %}" alt="Restaurant"/></div>
+               <div class="asm"><img src="{% static 'img/about2.jpg' %}" alt=""/></div>
+            </div>
+         </div>
+         <div class="col-lg-7" data-aos="fade-left">
+            <span class="slbl">Our Story</span>
+            <h2 class="stitle text-start">We Invite You to Visit<br/>Our <span>Food Restaurant</span></h2>
+            <div class="sline lft"></div>
+            <p class="sdesc mb-4">Founded in 2012, Sarab began as a small corner joint with a big dream - to serve food that brings people together. Today we're proud to serve thousands of happy customers every week with the same passion that started it all.</p>
+            <div class="mb-4">
+               <div class="fti">
+                  <div class="ftico r"><i class="fas fa-leaf"></i></div>
+                  <div>
+                     <h6>100% Fresh Ingredients</h6>
+                     <p>We source locally and sustainably. Every ingredient is hand-picked daily for maximum freshness.</p>
+                  </div>
+               </div>
+               <div class="fti">
+                  <div class="ftico y"><i class="fas fa-award"></i></div>
+                  <div>
+                     <h6>Award-Winning Recipes</h6>
+                     <p>Our signature recipes have won national culinary awards 5 years in a row.</p>
+                  </div>
+               </div>
+               <div class="fti">
+                  <div class="ftico g"><i class="fas fa-shipping-fast"></i></div>
+                  <div>
+                     <h6>Lightning-Fast Delivery</h6>
+                     <p>Order online and get hot, fresh food at your door in under 25 minutes, guaranteed.</p>
+                  </div>
+               </div>
+            </div>
+            <a href="#menu" class="btn-red"><i class="fas fa-book-open"></i>View Full Menu</a>
+         </div>
+      </div>
+   </div>
+</section>
+
+<!-- ============================================================
+   MENU  —  DB dan menyu elementlari
+   ============================================================ -->
+<section id="menu">
+   <div class="container">
+      <div class="text-center mb-5" data-aos="fade-up">
+         <span class="slbl">What's Cooking</span>
+         <h2 class="stitle">Our Delicious <span>Menu</span></h2>
+         <div class="sline"></div>
+      </div>
+
+      <!-- Filter tugmalari — DB dan kategoriyalar -->
+      <div class="text-center mb-4" data-aos="fade-up">
+         <button class="filtbtn active" data-f="all">All</button>
+         {% for cat in categories %}
+            <button class="filtbtn" data-f="{{ cat.slug }}">{{ cat.name }}</button>
+         {% endfor %}
+      </div>
+
+      <!-- Menyu kartalari — DB dan -->
+      <div class="row g-4" id="mgrid">
+         {% for item in menu_items %}
+         <div class="col-sm-6 col-lg-4 mwrap" data-c="{{ item.category.slug }}" data-aos="fade-up">
+            <div class="mcard"
+                 data-id="{{ item.id }}"
+                 data-img="{% if item.image %}{{ item.image.url }}{% endif %}"
+               data-title="{{ item.name }}"
+               data-cat="{{ item.category.name }}"
+               data-price="${{ item.price }}"
+               data-old="{% if item.old_price %}${{ item.old_price }}{% endif %}"
+               data-rating="{{ item.rating }}"
+               data-reviews="{{ item.review_count }}"
+               data-cal="{{ item.calories }}"
+               data-time="{{ item.prep_time }}"
+               data-desc="{{ item.description }}"
+               data-tags="{{ item.tags }}">
+
+               <div class="mimg">
+                  {% if item.image %}
+                     <img src="{{ item.image.url }}" alt="{{ item.name }}"/>
+                  {% else %}
+                     <img src="{% static 'img/menu/1.jpg' %}" alt="{{ item.name }}"/>
+                  {% endif %}
+                  {% if item.badge != "none" %}
+                     <div class="mbdg {% if item.badge == 'hot' %}hot{% elif item.badge == 'new' %}new{% endif %}">
+                        <i class="fas fa-star"></i> {{ item.get_badge_display }}
+                     </div>
+                  {% endif %}
+                  <div class="mhrt"><i class="far fa-heart"></i></div>
+               </div>
+
+               <div class="mbody">
+                  <div class="mcat">{{ item.category.name }}</div>
+                  <div class="mtit">{{ item.name }}</div>
+                  <div class="mdesc">{{ item.description|truncatewords:12 }}</div>
+                  <div class="mfoot">
+                     <div>
+                        <div class="mprice">
+                           ${{ item.price }}
+                           {% if item.old_price %}<small>${{ item.old_price }}</small>{% endif %}
+                        </div>
+                        <div class="mstars">
+                           <i class="fas fa-star"></i>
+                           <span style="color:#bbb;font-size:.7rem;">({{ item.review_count }})</span>
+                        </div>
+                     </div>
+                     <button class="madd" title="View Details"><i class="fas fa-plus"></i></button>
+                  </div>
+               </div>
+
+            </div>
+         </div>
+         {% empty %}
+            <div class="col-12 text-center py-5">
+               <p class="text-muted">Hozircha menyu elementlari yo'q. Admin paneldan qo'shing.</p>
+            </div>
+         {% endfor %}
+      </div><!-- end #mgrid -->
+
+      <div class="text-center mt-5"><a href="#" class="btn-red"><i class="fas fa-th-large"></i>View Full Menu</a></div>
+   </div>
+</section>
+
+<!-- ============================================================
+   MENU DETAIL POPUP
+   ============================================================ -->
+<div id="menuPop">
+   <div class="mpbox">
+      <button class="mpclose" id="mpClose"><i class="fas fa-times"></i></button>
+      <div class="mpimg"><img id="mpImg" src="" alt=""/></div>
+      <div class="mpbody">
+         <div id="mpCat"></div>
+         <div id="mpTitle"></div>
+         <div id="mpStars"></div>
+         <div id="mpDesc"></div>
+         <div id="mpPrice"></div>
+         <div class="mpmeta" id="mpMeta"></div>
+         <div class="mpqty">
+            <button class="mpqbtn" id="mpMinus">-</button>
+            <span class="mpqnum" id="mpQnum">1</span>
+            <button class="mpqbtn" id="mpPlus">+</button>
+            <span style="font-size:.82rem;color:#aaa;margin-left:9px;">portion</span>
+         </div>
+         <div class="mptags" id="mpTags"></div>
+         <button class="mpaddcart" id="mpAddCart"><i class="fas fa-shopping-cart"></i>Add to Cart</button>
+      </div>
+   </div>
+</div>
+
+<!-- ============================================================
+   SPECIAL OFFER
+   ============================================================ -->
+<section id="special">
+   <div class="spbg"></div>
+   <div class="container" style="position:relative;z-index:2;">
+      <div class="row align-items-center g-5">
+         <div class="col-lg-6" data-aos="fade-right">
+            <div class="sptag"><i class="fas fa-bolt me-1"></i>Limited Time Offer</div>
+            <h2 class="sptitle">Get 30% Off<br/>Our Signature<br/><span>Burger</span> Meal</h2>
+            <p class="spdesc">Don't miss our weekend special - grab our award-winning signature burger combo with loaded fries and a premium shake at an unbeatable price.</p>
+            <div class="cdwrap">
+               <div class="cditem"><span class="cdnum" id="cdH">08</span><span class="cdlbl">Hours</span></div>
+               <div class="cditem"><span class="cdnum" id="cdM">45</span><span class="cdlbl">Minutes</span></div>
+               <div class="cditem"><span class="cdnum" id="cdS">30</span><span class="cdlbl">Seconds</span></div>
+            </div>
+            <a href="#menu" class="btn-red"><i class="fas fa-shopping-cart"></i>Grab the Deal</a>
+         </div>
+         <div class="col-lg-6" data-aos="fade-left">
+            <div class="spimgw">
+               <div class="spglow"></div>
+               <div class="sppbdg"><span class="old">$24.99</span><span class="np">$17.49</span></div>
+               <img src="{% static 'img/off-img.jpg' %}" alt="Special Burger"/>
+            </div>
+         </div>
+      </div>
+   </div>
+</section>
+
+<!-- ============================================================
+   GALLERY
+   ============================================================ -->
+<section id="gallery">
+   <div class="container">
+      <div class="text-center mb-5" data-aos="fade-up">
+         <span class="slbl">Food Showcase</span>
+         <h2 class="stitle">Let's See Our <span>Fast Food</span></h2>
+         <div class="sline"></div>
+      </div>
+      <div class="ggrid" data-aos="fade-up">
+         <div class="gitem" data-gi="0" data-gimg="{% static 'img/portfolio/work1.jpg' %}" data-gtitle="Gourmet Burgers" data-gdesc="Our award-winning smash burgers, hand-crafted with 100% premium beef, aged cheddar and house-made sauces.">
+            <img src="{% static 'img/portfolio/work1.jpg' %}" alt="Burgers"/>
+            <div class="gover"><span><i class="fas fa-expand-alt"></i> Gourmet Burgers</span></div>
+         </div>
+         <div class="gitem" data-gi="1" data-gimg="{% static 'img/portfolio/work2.jpg' %}" data-gtitle="Wood-Fired Pizza" data-gdesc="Authentic Neapolitan-style pizzas fired at 900°F in our wood-burning stone oven.">
+            <img src="{% static 'img/portfolio/work2.jpg' %}" alt="Pizza"/>
+            <div class="gover"><span><i class="fas fa-expand-alt"></i> Wood-Fired Pizza</span></div>
+         </div>
+         <div class="gitem" data-gi="2" data-gimg="{% static 'img/portfolio/work3.jpg' %}" data-gtitle="Crispy Fried Chicken" data-gdesc="Double-brined, hand-battered chicken fried to golden perfection.">
+            <img src="{% static 'img/portfolio/work3.jpg' %}" alt="Chicken"/>
+            <div class="gover"><span><i class="fas fa-expand-alt"></i> Crispy Fried Chicken</span></div>
+         </div>
+         <div class="gitem" data-gi="3" data-gimg="{% static 'img/portfolio/work4.jpg' %}" data-gtitle="Sweet Desserts" data-gdesc="Handcrafted desserts from molten lava cakes to artisan ice cream sundaes.">
+            <img src="{% static 'img/portfolio/work4.jpg' %}" alt="Desserts"/>
+            <div class="gover"><span><i class="fas fa-expand-alt"></i> Sweet Desserts</span></div>
+         </div>
+         <div class="gitem" data-gi="4" data-gimg="{% static 'img/portfolio/work5.jpg' %}" data-gtitle="Fresh Wraps &amp; Rolls" data-gdesc="Loaded fresh wraps packed with grilled proteins and crunchy vegetables.">
+            <img src="{% static 'img/portfolio/work5.jpg' %}" alt="Wraps"/>
+            <div class="gover"><span><i class="fas fa-expand-alt"></i> Fresh Wraps &amp; Rolls</span></div>
+         </div>
+      </div>
+   </div>
+</section>
+
+<!-- GALLERY POPUP -->
+<div id="galPop">
+   <div class="gpbox">
+      <button class="gpclose" id="gpClose"><i class="fas fa-times"></i></button>
+      <img id="gpImg" src="" alt=""/>
+      <div class="gpcap">
+         <h5 id="gpTitle"></h5>
+         <p id="gpDesc"></p>
+      </div>
+      <div class="gpnav">
+         <button id="gpPrev"><i class="fas fa-chevron-left me-1"></i>Prev</button>
+         <button id="gpNext">Next <i class="fas fa-chevron-right ms-1"></i></button>
+      </div>
+   </div>
+</div>
+
+<!-- ============================================================
+   HISTORY
+   ============================================================ -->
+<section id="history">
+   <div class="container">
+      <div class="text-center mb-5" data-aos="fade-up">
+         <span class="slbl">Our Journey</span>
+         <h2 class="stitle">A History of <span>Restaurant</span></h2>
+         <div class="sline"></div>
+      </div>
+      <div class="timeline" data-aos="fade-up">
+         <div class="tli">
+            <div class="tl-left"><div class="tlyear">2012</div><h5>Evolution of Restaurants</h5><p>Sarab opens its first 20-seat diner on Flavor Street. Within 3 months, lines stretch around the block every evening.</p></div>
+            <div class="tl-center"><div class="tldot"></div></div>
+            <div class="tl-right"><div class="tlyear">2012</div><h5>Evolution of Restaurants</h5><p>Sarab opens its first 20-seat diner on Flavor Street. Within 3 months, lines stretch around the block every evening.</p></div>
+         </div>
+         <div class="tli">
+            <div class="tl-left"><div class="tlyear">2015</div><h5>Fine Dining &amp; The Concept</h5><p>Introduced our signature tasting menu and hired our first Michelin-trained chef, elevating our craft to new heights.</p></div>
+            <div class="tl-center"><div class="tldot"></div></div>
+            <div class="tl-right"><div class="tlyear">2015</div><h5>Fine Dining &amp; The Concept</h5><p>Introduced our signature tasting menu and hired our first Michelin-trained chef, elevating our craft to new heights.</p></div>
+         </div>
+         <div class="tli">
+            <div class="tl-left"><div class="tlyear">2019</div><h5>Modern Fast Food Origins</h5><p>Launched our signature fast-food line, merging gourmet quality with speed. Within 6 months we won 3 prestigious culinary awards.</p></div>
+            <div class="tl-center"><div class="tldot"></div></div>
+            <div class="tl-right"><div class="tlyear">2019</div><h5>Modern Fast Food Origins</h5><p>Launched our signature fast-food line, merging gourmet quality with speed. Within 6 months we won 3 prestigious culinary awards.</p></div>
+         </div>
+         <div class="tli">
+            <div class="tl-left"><div class="tlyear">2026</div><h5>National Expansion</h5><p>Now operating in 8 cities across the US with an online delivery platform handling 10,000+ orders weekly.</p></div>
+            <div class="tl-center"><div class="tldot"></div></div>
+            <div class="tl-right"><div class="tlyear">2026</div><h5>National Expansion</h5><p>Now operating in 8 cities across the US with an online delivery platform handling 10,000+ orders weekly.</p></div>
+         </div>
+      </div>
+   </div>
+</section>
+
+<!-- ============================================================
+   CHEFS  —  DB dan oshpazlar
+   ============================================================ -->
+<section id="chefs">
+   <div class="container">
+      <div class="text-center mb-5" data-aos="fade-up">
+         <span class="slbl">The Culinary Team</span>
+         <h2 class="stitle">Meet Our Expert <span>Chefs</span></h2>
+         <div class="sline"></div>
+      </div>
+      <div class="row g-4">
+         {% for chef in chefs %}
+         <div class="col-sm-6 col-lg-3" data-aos="fade-up" data-aos-delay="{{ forloop.counter0 }}0">
+            <div class="chcard">
+               <div class="chimg">
+                  {% if chef.photo %}
+                     <img src="{{ chef.photo.url }}" alt="{{ chef.name }}"/>
+                  {% else %}
+                     <img src="{% static 'img/chefs/1.jpg' %}" alt="{{ chef.name }}"/>
+                  {% endif %}
+                  <div class="chsoc">
+                     {% if chef.instagram %}<a href="{{ chef.instagram }}"><i class="fab fa-instagram"></i></a>{% endif %}
+                     {% if chef.facebook  %}<a href="{{ chef.facebook  }}"><i class="fab fa-facebook-f"></i></a>{% endif %}
+                     {% if chef.twitter   %}<a href="{{ chef.twitter   }}"><i class="fab fa-twitter"></i></a>{% endif %}
+                  </div>
+               </div>
+               <div class="chbody">
+                  <div class="chnm">{{ chef.name }}</div>
+                  <div class="chrole">{{ chef.role }}</div>
+                  <div class="chexp">{{ chef.experience }} years experience</div>
+               </div>
+            </div>
+         </div>
+         {% empty %}
+            <div class="col-12 text-center"><p class="text-muted">Admin paneldan oshpazlarni qo'shing.</p></div>
+         {% endfor %}
+      </div>
+   </div>
+</section>
+
+<!-- ============================================================
+   HOURS
+   ============================================================ -->
+<section id="hours">
+   <div class="hrsbg"></div>
+   <div class="container" style="position:relative;z-index:2;">
+      <div class="text-center mb-5" data-aos="fade-up">
+         <span class="slbl" style="color:#a5d6bc;">Opening Hours</span>
+         <h2 class="stitle" style="color:#fff;">We're Open <span style="color:var(--secondary);">For You</span></h2>
+         <div class="sline"></div>
+      </div>
+      <div class="row g-4 align-items-start">
+         <div class="col-lg-5" data-aos="fade-right">
+            <div class="hrscard">
+               <div class="hrsrow"><span class="hrsday"><i class="fas fa-calendar-day me-2" style="color:var(--secondary);"></i>Monday - Tuesday</span><div class="d-flex align-items-center gap-2"><div class="hdot off"></div><span class="hrstime" style="color:#ff6b6b;">Closed</span></div></div>
+               <div class="hrsrow"><span class="hrsday"><i class="fas fa-calendar-day me-2" style="color:var(--secondary);"></i>Wednesday - Thursday</span><div class="d-flex align-items-center gap-2"><div class="hdot on"></div><span class="hrstime">09:00 AM - 10:00 PM</span></div></div>
+               <div class="hrsrow"><span class="hrsday"><i class="fas fa-calendar-day me-2" style="color:var(--secondary);"></i>Friday</span><div class="d-flex align-items-center gap-2"><div class="hdot on"></div><span class="hrstime">09:00 AM - 11:00 PM</span></div></div>
+               <div class="hrsrow"><span class="hrsday"><i class="fas fa-calendar-day me-2" style="color:var(--secondary);"></i>Saturday</span><div class="d-flex align-items-center gap-2"><div class="hdot on"></div><span class="hrstime">10:00 AM - 11:30 PM</span></div></div>
+               <div class="hrsrow"><span class="hrsday"><i class="fas fa-calendar-day me-2" style="color:var(--secondary);"></i>Sunday</span><div class="d-flex align-items-center gap-2"><div class="hdot on"></div><span class="hrstime">11:00 AM - 09:00 PM</span></div></div>
+            </div>
+         </div>
+         <div class="col-lg-3" data-aos="zoom-in">
+            <div class="hrscta">
+               <i class="fas fa-truck-fast fa-2x mb-3" style="color:rgba(255,255,255,.8);"></i>
+               <h4>Order Online</h4>
+               <p>Get hot food delivered in 25 minutes</p>
+               <a href="#menu" class="btnw">Order Now →</a>
+            </div>
+         </div>
+         <div class="col-lg-4" data-aos="fade-left">
+            <div class="hrscard">
+               <h5 style="color:#fff;margin-bottom:18px;font-family:'Poppins',sans-serif;font-size:.95rem;font-weight:700;"><i class="fas fa-map-marker-alt me-2" style="color:var(--secondary);"></i>Find Us</h5>
+               <div class="hrsrow"><span class="hrsday"><i class="fas fa-location-dot me-2" style="color:var(--secondary);"></i>Address</span><span class="hrstime" style="font-size:.8rem;">42 Flavor Street, NY</span></div>
+               <div class="hrsrow"><span class="hrsday"><i class="fas fa-phone me-2" style="color:var(--secondary);"></i>Phone</span><span class="hrstime" style="font-size:.8rem;">+1 (800) 123-4567</span></div>
+               <div class="hrsrow"><span class="hrsday"><i class="fas fa-envelope me-2" style="color:var(--secondary);"></i>Email</span><span class="hrstime" style="font-size:.8rem;">hello@sarabfood.com</span></div>
+            </div>
+         </div>
+      </div>
+   </div>
+</section>
+
+<!-- ============================================================
+   TESTIMONIALS  —  DB dan sharhlar (Swiper)
+   ============================================================ -->
+<section id="testimonials">
+   <div class="container">
+      <div class="text-center mb-5" data-aos="fade-up">
+         <span class="slbl">What People Say</span>
+         <h2 class="stitle">Our Customers <span>Feedback</span></h2>
+         <div class="sline"></div>
+      </div>
+      <div class="swiper tesSwiper" data-aos="fade-up">
+         <div class="swiper-wrapper">
+            {% for t in testimonials %}
+            <div class="swiper-slide">
+               <div class="tescard">
+                  <div class="tesq">"</div>
+                  <div class="tess">
+                     {% for i in "12345" %}
+                        <i class="fas fa-star{% if forloop.counter > t.rating %} text-muted{% endif %}"></i>
+                     {% endfor %}
+                  </div>
+                  <p class="testxt">{{ t.text }}</p>
+                  <div class="tesauth">
+                     {% if t.photo %}
+                        <img src="{{ t.photo.url }}" alt="{{ t.name }}"/>
+                     {% else %}
+                        <img src="{% static 'img/testimonial/1.jpg' %}" alt="{{ t.name }}"/>
+                     {% endif %}
+                     <div>
+                        <div class="tesnm">{{ t.name }}</div>
+                        <div class="tesrl">{{ t.role }}</div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+            {% empty %}
+            <div class="swiper-slide">
+               <div class="tescard text-center"><p class="text-muted">Admin paneldan sharhlar qo'shing.</p></div>
+            </div>
+            {% endfor %}
+         </div>
+         <div class="swiper-pagination mt-4" style="position:static;"></div>
+      </div>
+   </div>
+</section>
+
+<!-- ============================================================
+   RESERVATION  —  Django forma
+   ============================================================ -->
+<section id="reservation">
+   <div class="container">
+      <div class="text-center mb-5" data-aos="fade-up">
+         <span class="slbl">Book a Table</span>
+         <h2 class="stitle">Make a <span>Reservation</span></h2>
+         <div class="sline"></div>
+         <p class="sdesc mx-auto" style="max-width:480px;">Reserve your table for a memorable dining experience. We recommend booking 24 hours in advance for weekend evenings.</p>
+      </div>
+      <div class="row g-4 align-items-start">
+         <div class="col-lg-4" data-aos="fade-right">
+            <div style="background:var(--dark);border-radius:18px;padding:36px;">
+               <h4 style="color:#fff;font-size:1.3rem;margin-bottom:8px;">Contact Info</h4>
+               <p style="color:rgba(255,255,255,.55);font-size:.85rem;margin-bottom:26px;">We're happy to help you plan the perfect dining experience.</p>
+               <div class="d-flex flex-column gap-3">
+                  <div class="d-flex align-items-center gap-3">
+                     <div style="width:46px;height:46px;border-radius:11px;background:rgba(232,40,26,.2);display:flex;align-items:center;justify-content:center;color:var(--primary);font-size:1.1rem;flex-shrink:0;"><i class="fas fa-clock"></i></div>
+                     <div><strong style="display:block;color:#ccc;font-size:.78rem;text-transform:uppercase;letter-spacing:.8px;">Opening Hours</strong><span style="color:#fff;font-size:.87rem;">Wed - Sun, 9 AM - 11 PM</span></div>
+                  </div>
+                  <div class="d-flex align-items-center gap-3">
+                     <div style="width:46px;height:46px;border-radius:11px;background:rgba(232,40,26,.2);display:flex;align-items:center;justify-content:center;color:var(--primary);font-size:1.1rem;flex-shrink:0;"><i class="fas fa-phone-alt"></i></div>
+                     <div><strong style="display:block;color:#ccc;font-size:.78rem;text-transform:uppercase;letter-spacing:.8px;">Call for Booking</strong><span style="color:#fff;font-size:.87rem;">+1 (800) 123-4567</span></div>
+                  </div>
+                  <div class="d-flex align-items-center gap-3">
+                     <div style="width:46px;height:46px;border-radius:11px;background:rgba(232,40,26,.2);display:flex;align-items:center;justify-content:center;color:var(--primary);font-size:1.1rem;flex-shrink:0;"><i class="fas fa-users"></i></div>
+                     <div><strong style="display:block;color:#ccc;font-size:.78rem;text-transform:uppercase;letter-spacing:.8px;">Group Dining</strong><span style="color:#fff;font-size:.87rem;">Special menus for 10+ guests</span></div>
+                  </div>
+               </div>
+            </div>
+         </div>
+
+         <div class="col-lg-8" data-aos="fade-left">
+            <div class="fcard">
+               <form method="POST" action="{% url 'shop:home' %}#reservation">
+                  {% csrf_token %}
+                  <input type="hidden" name="form_type" value="reservation"/>
+
+                  <div class="row g-3">
+                     <div class="col-sm-6">
+                        <label class="flbl">Full Name *</label>
+                        {{ reservation_form.full_name }}
+                        {% if reservation_form.full_name.errors %}
+                           <small class="text-danger d-block mt-1">{{ reservation_form.full_name.errors.0 }}</small>
+                        {% endif %}
+                     </div>
+                     <div class="col-sm-6">
+                        <label class="flbl">Phone Number *</label>
+                        {{ reservation_form.phone }}
+                        {% if reservation_form.phone.errors %}
+                           <small class="text-danger d-block mt-1">{{ reservation_form.phone.errors.0 }}</small>
+                        {% endif %}
+                     </div>
+                     <div class="col-sm-6">
+                        <label class="flbl">Email Address *</label>
+                        {{ reservation_form.email }}
+                        {% if reservation_form.email.errors %}
+                           <small class="text-danger d-block mt-1">{{ reservation_form.email.errors.0 }}</small>
+                        {% endif %}
+                     </div>
+                     <div class="col-sm-6">
+                        <label class="flbl">Number of Guests *</label>
+                        {{ reservation_form.guests }}
+                     </div>
+                     <div class="col-sm-6">
+                        <label class="flbl">Date *</label>
+                        {{ reservation_form.date }}
+                        {% if reservation_form.date.errors %}
+                           <small class="text-danger d-block mt-1">{{ reservation_form.date.errors.0 }}</small>
+                        {% endif %}
+                     </div>
+                     <div class="col-sm-6">
+                        <label class="flbl">Time *</label>
+                        {{ reservation_form.time }}
+                     </div>
+                     <div class="col-12">
+                        <label class="flbl">Special Requests</label>
+                        {{ reservation_form.special_requests }}
+                     </div>
+                     <div class="col-12">
+                        <button type="submit" class="btn-red w-100 justify-content-center">
+                           <i class="fas fa-calendar-check"></i>Confirm Reservation
+                        </button>
+                     </div>
+                  </div>
+
+               </form>
+            </div>
+         </div>
+      </div>
+   </div>
+</section>
+
+<!-- ============================================================
+   BLOG  —  DB dan blog postlar
+   ============================================================ -->
+<section id="blog">
+   <div class="container">
+      <div class="text-center mb-5" data-aos="fade-up">
+         <span class="slbl">News &amp; Updates</span>
+         <h2 class="stitle">Our Latest <span>Blog</span> Posts</h2>
+         <div class="sline"></div>
+      </div>
+      <div class="row g-4">
+         {% for post in blog_posts %}
+         <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="{{ forloop.counter0 }}0">
+            <div class="blcard">
+               <div class="blimg">
+                  {% if post.image %}
+                     <img src="{{ post.image.url }}" alt="{{ post.title }}"/>
+                  {% else %}
+                     <img src="{% static 'img/blog/1.jpg' %}" alt="{{ post.title }}"/>
+                  {% endif %}
+                  <div class="bldatebdg">
+                     <span class="bd">{{ post.created_at|date:"d" }}</span>
+                     <span class="bm">{{ post.created_at|date:"M" }}</span>
+                  </div>
+               </div>
+               <div class="blbody">
+                  <div class="bltag">{{ post.tag }}</div>
+                  <div class="bltit"><a href="#">{{ post.title }}</a></div>
+                  <div class="blmeta">
+                     <span><i class="fas fa-user"></i>{{ post.author }}</span>
+                     <span><i class="fas fa-comment"></i>{{ post.comments }} Comments</span>
+                  </div>
+                  <a href="#" class="blmore">Read More <i class="fas fa-arrow-right"></i></a>
+               </div>
+            </div>
+         </div>
+         {% empty %}
+            <div class="col-12 text-center"><p class="text-muted">Admin paneldan blog postlar qo'shing.</p></div>
+         {% endfor %}
+      </div>
+   </div>
+</section>
+
+<!-- ============================================================
+   NEWSLETTER  —  AJAX bilan yuborish
+   ============================================================ -->
+<section id="newsletter">
+   <div class="nlbg"></div>
+   <div class="container">
+      <div class="nlw text-center" data-aos="zoom-in">
+         <span class="slbl" style="color:rgba(255,255,255,.7);">Stay Connected</span>
+         <h2 class="mb-3" style="color:#fff;">Subscribe &amp; Get Exclusive <span style="color:var(--secondary);">Deals</span></h2>
+         <p class="mb-4" style="color:rgba(255,255,255,.78);">Get 15% off your first order plus early access to new menu items</p>
+         <div class="nl-form-wrap">
+            <input class="nlinput" type="email" id="nlEmail" placeholder="Enter your email address..."/>
+            <button class="nlbtn" id="nlBtn">
+               <i class="fas fa-paper-plane me-1"></i>Subscribe
+            </button>
+         </div>
+         <p id="nlMsg" style="margin-top:12px;font-size:.9rem;display:none;"></p>
+         <p style="color:rgba(255,255,255,.45);font-size:.76rem;margin-top:11px;">
+            <i class="fas fa-lock me-1"></i>No spam, unsubscribe anytime.
+         </p>
+      </div>
+   </div>
+</section>
+
+<!-- ============================================================
+   CONTACT  —  Django forma
+   ============================================================ -->
+<section id="contact-section">
+   <div class="container">
+      <div class="text-center mb-5" data-aos="fade-up">
+         <span class="slbl">Get In Touch</span>
+         <h2 class="stitle">Contact <span>Us</span></h2>
+         <div class="sline"></div>
+         <p class="sdesc mx-auto" style="max-width:480px;">Have a question, feedback, or want to plan a special event? We'd love to hear from you.</p>
+      </div>
+      <div class="row g-4">
+         <div class="col-lg-4" data-aos="fade-right">
+            <div class="ctdark">
+               <h4>Let's Talk</h4>
+               <p class="ctsub">We typically respond within 2 hours during business hours.</p>
+               <div class="ctitem">
+                  <div class="cticon"><i class="fas fa-map-marker-alt"></i></div>
+                  <div class="ctinfo"><strong>Address</strong><span>42 Flavor Street, Manhattan,<br/>New York, NY 10001</span></div>
+               </div>
+               <div class="ctitem">
+                  <div class="cticon"><i class="fas fa-phone-alt"></i></div>
+                  <div class="ctinfo"><strong>Phone</strong><span>+1 (800) 123-4567</span></div>
+               </div>
+               <div class="ctitem">
+                  <div class="cticon"><i class="fas fa-envelope"></i></div>
+                  <div class="ctinfo"><strong>Email</strong><span>hello@sarabfood.com</span></div>
+               </div>
+               <div class="ctitem">
+                  <div class="cticon"><i class="fas fa-clock"></i></div>
+                  <div class="ctinfo"><strong>Working Hours</strong><span>Wed - Sun: 9 AM - 11 PM</span></div>
+               </div>
+               <div class="ctsocrow">
+                  <a href="#"><i class="fab fa-facebook-f"></i></a>
+                  <a href="#"><i class="fab fa-instagram"></i></a>
+                  <a href="#"><i class="fab fa-twitter"></i></a>
+                  <a href="#"><i class="fab fa-youtube"></i></a>
+               </div>
+            </div>
+         </div>
+
+         <div class="col-lg-8" data-aos="fade-left">
+            <div class="fcard">
+               <form method="POST" action="{% url 'shop:home' %}#contact-section">
+                  {% csrf_token %}
+                  <input type="hidden" name="form_type" value="contact"/>
+
+                  <div class="row g-3">
+                     <div class="col-sm-6">
+                        <label class="flbl">Your Name *</label>
+                        {{ contact_form.name }}
+                        {% if contact_form.name.errors %}
+                           <small class="text-danger d-block mt-1">{{ contact_form.name.errors.0 }}</small>
+                        {% endif %}
+                     </div>
+                     <div class="col-sm-6">
+                        <label class="flbl">Email Address *</label>
+                        {{ contact_form.email }}
+                        {% if contact_form.email.errors %}
+                           <small class="text-danger d-block mt-1">{{ contact_form.email.errors.0 }}</small>
+                        {% endif %}
+                     </div>
+                     <div class="col-sm-6">
+                        <label class="flbl">Phone Number</label>
+                        {{ contact_form.phone }}
+                     </div>
+                     <div class="col-sm-6">
+                        <label class="flbl">Subject *</label>
+                        {{ contact_form.subject }}
+                     </div>
+                     <div class="col-12">
+                        <label class="flbl">Message *</label>
+                        {{ contact_form.message }}
+                        {% if contact_form.message.errors %}
+                           <small class="text-danger d-block mt-1">{{ contact_form.message.errors.0 }}</small>
+                        {% endif %}
+                     </div>
+                     <div class="col-12">
+                        <button type="submit" class="btn-red">
+                           <i class="fas fa-paper-plane"></i>Send Message
+                        </button>
+                     </div>
+                  </div>
+
+               </form>
+            </div>
+         </div>
+      </div>
+   </div>
+</section>
+
+<!-- ============================================================
+   FOOTER
+   ============================================================ -->
+<footer>
+   <div class="container">
+      <div class="row g-5">
+         <div class="col-lg-4">
+            <div class="fnm">Sar<span>ab</span></div>
+            <p class="fdesc">We bring the world's finest flavors together in a fast, friendly, and affordable experience. Every meal crafted with love.</p>
+            <div class="fsoc">
+               <a href="#"><i class="fab fa-facebook-f"></i></a>
+               <a href="#"><i class="fab fa-instagram"></i></a>
+               <a href="#"><i class="fab fa-twitter"></i></a>
+               <a href="#"><i class="fab fa-youtube"></i></a>
+               <a href="#"><i class="fab fa-tiktok"></i></a>
+            </div>
+         </div>
+         <div class="col-sm-6 col-lg-2">
+            <div class="ftit">Quick Links</div>
+            <ul class="flinks ps-0">
+               <li><a href="#hero"><i class="fas fa-chevron-right"></i>Home</a></li>
+               <li><a href="#about"><i class="fas fa-chevron-right"></i>About Us</a></li>
+               <li><a href="#menu"><i class="fas fa-chevron-right"></i>Our Menu</a></li>
+               <li><a href="#reservation"><i class="fas fa-chevron-right"></i>Reservation</a></li>
+               <li><a href="#blog"><i class="fas fa-chevron-right"></i>Blog</a></li>
+               <li><a href="#contact-section"><i class="fas fa-chevron-right"></i>Contact</a></li>
+            </ul>
+         </div>
+         <div class="col-sm-6 col-lg-2">
+            <div class="ftit">Our Menu</div>
+            <ul class="flinks ps-0">
+               {% for cat in categories %}
+               <li><a href="#menu"><i class="fas fa-chevron-right"></i>{{ cat.name }}</a></li>
+               {% endfor %}
+            </ul>
+         </div>
+         <div class="col-lg-4">
+            <div class="ftit">Get In Touch</div>
+            <div class="fci"><div class="fciico"><i class="fas fa-map-marker-alt"></i></div><div class="fciinfo"><strong>Address</strong>42 Flavor Street, Manhattan, NY 10001</div></div>
+            <div class="fci"><div class="fciico"><i class="fas fa-phone-alt"></i></div><div class="fciinfo"><strong>Phone</strong>+1 (800) 123-4567</div></div>
+            <div class="fci"><div class="fciico"><i class="fas fa-envelope"></i></div><div class="fciinfo"><strong>Email</strong>hello@sarabfood.com</div></div>
+            <div class="fci"><div class="fciico"><i class="fas fa-clock"></i></div><div class="fciinfo"><strong>Hours</strong>Wed - Sun: 09 AM - 11 PM</div></div>
+         </div>
+      </div>
+   </div>
+   <div class="fbot">
+      <div class="container">
+         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <p>&copy; 2026 <span>Sarab Restaurant</span>. All Rights Reserved.</p>
+            <div><a href="#">Privacy Policy</a><a href="#">Terms</a><a href="#">Cookies</a></div>
+         </div>
+      </div>
+   </div>
+</footer>
+
+<!-- Back to top -->
+<button id="btt" onclick="window.scrollTo({top:0,behavior:'smooth'})"><i class="fas fa-chevron-up"></i></button>
+
+<!-- ============================================================
+   SCRIPTS
+   ============================================================ -->
+<script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
+<script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+<script src="{% static 'js/aos.js' %}"></script>
+<script src="{% static 'js/swiper-bundle.min.js' %}"></script>
+<script src="{% static 'js/jquery.magnific-popup.min.js' %}"></script>
+<script src="{% static 'js/main.js' %}"></script>
+
+
+<script>
+   window.currentMenuItemId = null;
+
+   document.querySelectorAll(".mcard").forEach(function (card) {
+      card.addEventListener("click", function () {
+         window.currentMenuItemId = card.dataset.id;
+      });
+   });
+
+   const mpAddCartBtn = document.getElementById("mpAddCart");
+   if (mpAddCartBtn) {
+      mpAddCartBtn.addEventListener("click", function (e) {
+         e.preventDefault();
+
+         if (!window.currentMenuItemId) {
+            alert("Mahsulot tanlanmagan. Iltimos, qaytadan urinib ko'ring.");
+            return;
+         }
+
+         const qtyEl    = document.getElementById("mpQnum");
+         const quantity = qtyEl ? parseInt(qtyEl.textContent, 10) || 1 : 1;
+
+         const csrfToken = "{{ csrf_token }}";
+         const originalHTML = this.innerHTML;
+         this.disabled  = true;
+         this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Yuklanmoqda...';
+
+         fetch("{% url 'shop:cart_add' %}", {
+            method:  "POST",
+            headers: {
+               "Content-Type": "application/x-www-form-urlencoded",
+               "X-CSRFToken":  csrfToken
+            },
+            body: `item_id=${window.currentMenuItemId}&quantity=${quantity}`
+         })
+         .then(res => res.json().then(data => ({ status: res.status, body: data })))
+         .then(({ status, body }) => {
+            if (status === 401 && body.login_required) {
+               window.location.href = body.redirect_url;
+               return;
+            }
+            if (body.success) {
+               window.location.href = body.redirect_url;
+            } else {
+               alert("Xato yuz berdi. Qaytadan urinib ko'ring.");
+               this.disabled  = false;
+               this.innerHTML = originalHTML;
+            }
+         })
+         .catch(() => {
+            alert("Server bilan bog'lanishda xato yuz berdi.");
+            this.disabled  = false;
+            this.innerHTML = originalHTML;
+         });
+      });
+   }
+
+   document.querySelectorAll(".madd").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+         const card = this.closest(".mcard");
+         if (card) {
+            window.currentMenuItemId = card.dataset.id;
+         }
+      });
+   });
+</script>
+
+<!-- Newsletter AJAX -->
+<script>
+document.getElementById("nlBtn").addEventListener("click", function () {
+   const email     = document.getElementById("nlEmail").value.trim();
+   const msgEl     = document.getElementById("nlMsg");
+   const csrfToken = "{{ csrf_token }}";
+
+   if (!email) {
+      msgEl.style.display  = "block";
+      msgEl.style.color    = "#f87171";
+      msgEl.textContent    = "Iltimos, email manzilingizni kiriting!";
+      return;
+   }
+
+   this.disabled    = true;
+   this.textContent = "Yuborilmoqda...";
+
+   fetch("{% url 'shop:newsletter_subscribe' %}", {
+      method:  "POST",
+      headers: {
+         "Content-Type": "application/x-www-form-urlencoded",
+         "X-CSRFToken":  csrfToken
+      },
+      body: "email=" + encodeURIComponent(email)
+   })
+   .then(res => res.json())
+   .then(data => {
+      msgEl.style.display = "block";
+      if (data.success) {
+         msgEl.style.color = "#4ade80";
+         msgEl.textContent = data.message;
+         document.getElementById("nlEmail").value = "";
+      } else {
+         msgEl.style.color = "#f87171";
+         msgEl.textContent = Object.values(data.errors)[0];
+      }
+   })
+   .catch(() => {
+      msgEl.style.display = "block";
+      msgEl.style.color   = "#f87171";
+      msgEl.textContent   = "Xato yuz berdi. Qaytadan urinib ko'ring.";
+   })
+   .finally(() => {
+      this.disabled   = false;
+      this.innerHTML  = '<i class="fas fa-paper-plane me-1"></i>Subscribe';
+   });
+});
+</script>
+
+</body>
+</html>
