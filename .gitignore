@@ -1,0 +1,38 @@
+# ── Maxfiy ma'lumotlar (tokenlar, parollar) ──
+.env
+
+# ── Python ──
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# ── Virtual environment ──
+venv/
+env/
+ENV/
+.venv/
+
+# ── Django ──
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# ── Media va static fayllar (foydalanuvchi yuklagan rasm-fayllar) ──
+media/
+staticfiles/
+
+# ── IDE (PyCharm, VS Code) ──
+.idea/
+.vscode/
+*.swp
+
+# ── OS fayllari ──
+.DS_Store
+Thumbs.db
+
+# ── Testlar va coverage ──
+.pytest_cache/
+htmlcov/
+.coverage

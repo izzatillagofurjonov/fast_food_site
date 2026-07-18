@@ -10,14 +10,12 @@ import os
 # ─── ASOSIY YO'L ──────────────────────────────────────────────────────────────
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # ─── XAVFSIZLIK ───────────────────────────────────────────────────────────────
 SECRET_KEY = 'django-insecure-sarab-restaurant-secret-key-change-in-production-2024'
 
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
-
 
 # ─── O'RNATILGAN ILOVALAR ─────────────────────────────────────────────────────
 INSTALLED_APPS = [
@@ -30,8 +28,8 @@ INSTALLED_APPS = [
 
     # Bizning ilova
     'shop',
+    "telegram_bot",
 ]
-
 
 # ─── MIDDLEWARE ───────────────────────────────────────────────────────────────
 MIDDLEWARE = [
@@ -44,10 +42,8 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-
 # ─── URL KONFIGURATSIYA ───────────────────────────────────────────────────────
 ROOT_URLCONF = 'config.urls'
-
 
 # ─── TEMPLATE SOZLAMALARI ─────────────────────────────────────────────────────
 TEMPLATES = [
@@ -66,10 +62,8 @@ TEMPLATES = [
     },
 ]
 
-
 # ─── WSGI ─────────────────────────────────────────────────────────────────────
 WSGI_APPLICATION = 'config.wsgi.application'
-
 
 # ─── MA'LUMOTLAR BAZASI ───────────────────────────────────────────────────────
 DATABASES = {
@@ -79,7 +73,6 @@ DATABASES = {
     }
 }
 
-
 # ─── PAROL TEKSHIRUVI ─────────────────────────────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
@@ -88,13 +81,11 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-
 # ─── TIL VA VAQT ZONASI ───────────────────────────────────────────────────────
 LANGUAGE_CODE = 'uz'
-TIME_ZONE     = 'Asia/Tashkent'
-USE_I18N      = True
-USE_TZ        = True
-
+TIME_ZONE = 'Asia/Tashkent'
+USE_I18N = True
+USE_TZ = True
 
 # ─── STATIC FAYLLAR (CSS, JS) ─────────────────────────────────────────────────
 STATIC_URL = '/static/'
@@ -103,24 +94,22 @@ STATICFILES_DIRS = [
 ]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-
 # ─── MEDIA FAYLLAR (YUKLANGAN RASMLAR) ───────────────────────────────────────
-MEDIA_URL  = '/media/'
+MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
-
 
 # ─── DEFAULT PRIMARY KEY ──────────────────────────────────────────────────────
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
 # ─── MESSAGE TEGLARI ─────────────────────────────────────────────────────────
 from django.contrib.messages import constants as msg_const
+
 MESSAGE_TAGS = {
-    msg_const.DEBUG:   'secondary',
-    msg_const.INFO:    'info',
+    msg_const.DEBUG: 'secondary',
+    msg_const.INFO: 'info',
     msg_const.SUCCESS: 'success',
     msg_const.WARNING: 'warning',
-    msg_const.ERROR:   'danger',
+    msg_const.ERROR: 'danger',
 }
 
 # ─── LOGIN/LOGOUT YO'NALTIRISHLARI ────────────────────────────────────

@@ -28,6 +28,39 @@
       .status-delivered   { background:rgba(34,197,94,.2);   color:#22c55e; }
       .status-cancelled   { background:rgba(239,68,68,.15);  color:#f87171; }
 
+      /* ── Bekor qilish tugmasi ── */
+      .order-actions { display:flex; align-items:center; gap:10px; }
+      .cancel-order-btn {
+         background: rgba(239,68,68,.1);
+         border: 1px solid rgba(239,68,68,.3);
+         color: #f87171;
+         font-size: .76rem;
+         font-weight: 600;
+         padding: 6px 12px;
+         border-radius: 20px;
+         cursor: pointer;
+         transition: .2s;
+         white-space: nowrap;
+      }
+      .cancel-order-btn:hover {
+         background: rgba(239,68,68,.2);
+         border-color: #f87171;
+      }
+      .cancel-order-btn:disabled {
+         opacity: .5;
+         cursor: not-allowed;
+      }
+      .cancelled-note {
+         color: #f87171;
+         font-size: .8rem;
+         display: flex;
+         align-items: center;
+         gap: 6px;
+         margin-top: 10px;
+         padding-top: 10px;
+         border-top: 1px solid rgba(255,255,255,.08);
+      }
+
       .oc-items { border-top:1px solid rgba(255,255,255,.08); padding-top:12px; }
       .oc-item { display:flex; justify-content:space-between; color:rgba(255,255,255,.65); font-size:.86rem; margin-bottom:6px; }
       .oc-item span:last-child { color:#fff; }
@@ -50,19 +83,39 @@
 </head>
 <body>
 
+<!-- Django messages — bekor qilingandan keyin xabar ko'rsatish uchun -->
+{% if messages %}
+<div style="position:fixed;top:20px;right:20px;z-index:9999;min-width:300px;">
+   {% for msg in messages %}
+   <div class="alert alert-{{ msg.tags }} alert-dismissible fade show shadow">
+      {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+   </div>
+   {% endfor %}
+</div>
+{% endif %}
+
 <div class="ord-wrap">
    <a href="{% url 'shop:home' %}" class="back-link"><i class="fas fa-arrow-left me-1"></i>Bosh sahifaga qaytish</a>
    <div class="ord-top"><h1><i class="fas fa-receipt me-2" style="color:var(--primary);"></i>Buyurtmalarim</h1></div>
 
    {% if orders %}
       {% for order in orders %}
-      <div class="order-card">
+      <div class="order-card" id="order-card-{{ order.id }}">
          <div class="oc-top">
             <div>
                <h5>Buyurtma #{{ order.id }}</h5>
                <div class="oc-date">{{ order.created_at|date:"d.m.Y H:i" }}</div>
             </div>
-            <span class="status-badge status-{{ order.status }}">{{ order.get_status_display }}</span>
+
+            <div class="order-actions">
+               <span class="status-badge status-{{ order.status }}" id="status-badge-{{ order.id }}">{{ order.get_status_display }}</span>
+
+               {% if order.status == "new" or order.status == "confirmed" %}
+               <button class="cancel-order-btn" data-order-id="{{ order.id }}">
+                  <i class="fas fa-times-circle me-1"></i>Bekor qilish
+               </button>
+               {% endif %}
+            </div>
          </div>
 
          {% if order.status != "cancelled" %}
@@ -82,6 +135,11 @@
             <div class="progress-step {% if order.status == 'delivered' %}done{% endif %}">
                <div class="dot"><i class="fas fa-check"></i></div><span class="lbl">Yetdi</span>
             </div>
+         </div>
+         {% else %}
+         <div class="cancelled-note">
+            <i class="fas fa-ban"></i>
+            <span>Bu buyurtma bekor qilingan.</span>
          </div>
          {% endif %}
 
@@ -107,5 +165,51 @@
 
 <script src="{% static 'js/jquery-3.7.1.min.js' %}"></script>
 <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+
+<!-- ============================================================
+   BUYURTMANI BEKOR QILISH — AJAX
+   ============================================================ -->
+<script>
+const csrfToken = "{{ csrf_token }}";
+
+document.querySelectorAll(".cancel-order-btn").forEach(function (btn) {
+   btn.addEventListener("click", function () {
+      const orderId = this.dataset.orderId;
+
+      if (!confirm("Haqiqatan ham bu buyurtmani bekor qilmoqchimisiz?")) {
+         return;
+      }
+
+      const originalText = this.innerHTML;
+      this.disabled  = true;
+      this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Bekor qilinmoqda...';
+
+      fetch(`/orders/${orderId}/cancel/`, {
+         method: "POST",
+         headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-CSRFToken": csrfToken
+         }
+      })
+      .then(res => res.json())
+      .then(data => {
+         if (data.success) {
+            // Sahifani to'liq qayta yuklamasdan, faqat shu kartani yangilaymiz
+            location.reload();
+         } else {
+            alert(data.message);
+            this.disabled  = false;
+            this.innerHTML = originalText;
+         }
+      })
+      .catch(() => {
+         alert("Server bilan bog'lanishda xato yuz berdi.");
+         this.disabled  = false;
+         this.innerHTML = originalText;
+      });
+   });
+});
+</script>
+
 </body>
 </html>

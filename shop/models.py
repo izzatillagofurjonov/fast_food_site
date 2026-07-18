@@ -239,17 +239,14 @@ class BlogPost(models.Model):
         return self.title
 
 
-# ══════════════════════════════════════════════════════════════════════
-#  9. FOYDALANUVCHI PROFILI  →  Telefon, manzil saqlash uchun
-# ══════════════════════════════════════════════════════════════════════
 class UserProfile(models.Model):
-    """
-    Django ning standart User modeliga qo'shimcha ma'lumot.
-    OneToOneField — har bir User uchun FAQAT bitta Profile bo'ladi.
-    """
     user    = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile", verbose_name="Foydalanuvchi")
     phone   = models.CharField(max_length=20, blank=True, verbose_name="Telefon raqami")
     address = models.TextField(blank=True, verbose_name="Doimiy manzil")
+    telegram_chat_id = models.BigIntegerField(          # ← YANGI QATOR
+        null=True, blank=True, unique=True,
+        verbose_name="Telegram Chat ID"
+    )
 
     class Meta:
         verbose_name        = "Profil"

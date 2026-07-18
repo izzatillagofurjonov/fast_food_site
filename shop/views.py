@@ -352,3 +352,30 @@ def order_success_view(request, order_id):
 def my_orders_view(request):
     orders = Order.objects.filter(user=request.user).prefetch_related("items")
     return render(request, "home/my_orders.html", {"orders": orders})
+
+
+@login_required(login_url="shop:login")
+@require_POST
+def order_cancel(request, order_id):
+    """
+    Foydalanuvchi o'z buyurtmasini bekor qiladi.
+    Faqat 'new' (Yangi) yoki 'confirmed' (Qabul qilindi) holatidagi
+    buyurtmalarni bekor qilish mumkin — tayyorlanayotgan yoki
+    yo'ldagi buyurtmani bekor qilib bo'lmaydi.
+    """
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+
+    if order.status not in ["new", "confirmed"]:
+        return JsonResponse({
+            "success": False,
+            "message": "Bu buyurtmani endi bekor qilib bo'lmaydi — u allaqachon tayyorlanmoqda yoki yetkazilgan."
+        }, status=400)
+
+    order.status = "cancelled"
+    order.save()
+
+    return JsonResponse({
+        "success": True,
+        "message": f"Buyurtma #{order.id} bekor qilindi.",
+        "status_display": order.get_status_display(),
+    })
