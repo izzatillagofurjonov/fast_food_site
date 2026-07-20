@@ -1,4 +1,6 @@
 import os
+from datetime import datetime
+
 from decouple import config
 import telebot
 from telebot import types
@@ -6,7 +8,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.hashers import make_password, check_password
 from django.core.files.base import ContentFile
 
-from shop.models import Category, MenuItem, Chef, Order, OrderItem, UserProfile
+from shop.models import Category, MenuItem, Chef, Order, OrderItem, UserProfile, Reservation
 
 BOT_TOKEN = config("TELEGRAM_BOT_TOKEN")
 ADMIN_CHAT_ID = config("TELEGRAM_ADMIN_CHAT_ID", default="")
@@ -14,9 +16,12 @@ ADMIN_CHAT_ID = config("TELEGRAM_ADMIN_CHAT_ID", default="")
 bot = telebot.TeleBot(BOT_TOKEN)
 
 CANCELLABLE_STATUSES = ["new", "confirmed", "preparing"]
+WORKING_HOURS = ["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00",
+                 "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00"]
 
-# Buyurtma berish jarayonida vaqtincha ma'lumot saqlash uchun (chat_id bo'yicha)
+# Vaqtincha ma'lumot saqlash (chat_id bo'yicha)
 checkout_data = {}
+reservation_data = {}
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -34,6 +39,7 @@ def main_menu_markup(profile):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add("🍽 Menyu", "📦 Buyurtmalarim")
     markup.add("👨‍🍳 Oshpazlar", "👤 Profilim")
+    markup.add("📅 Stol bron qilish", "🗓 Bronlarim")
     if is_admin(profile):
         markup.add("⚙️ Admin panel")
     markup.add("🚪 Chiqish")
@@ -276,15 +282,14 @@ def item_detail_handler(call):
 
 
 # ═══════════════════════════════════════════════════════════════
-#  BUYURTMA BERISH (checkout) — saytdagidek: F.I.Sh, telefon, manzil, izoh, to'lov usuli
+#  BUYURTMA BERISH (checkout)
 # ═══════════════════════════════════════════════════════════════
 @bot.callback_query_handler(func=lambda call: call.data.startswith("order_"))
 def order_start_handler(call):
     profile = get_profile_by_chat(call.message.chat.id)
     if not profile:
         bot.answer_callback_query(call.id, "Avval ro'yxatdan o'ting yoki kiring.")
-        bot.send_message(call.message.chat.id, "❗ Buyurtma berish uchun avval tizimga kiring.",
-                         reply_markup=guest_menu_markup())
+        bot.send_message(call.message.chat.id, "❗ Buyurtma berish uchun avval tizimga kiring.", reply_markup=guest_menu_markup())
         return
 
     item = MenuItem.objects.filter(id=call.data.replace("order_", "")).first()
@@ -349,7 +354,7 @@ def checkout_get_address(message):
 
 def checkout_get_comment(message):
     data = checkout_data.get(message.chat.id)
-    data["comment"] = "" if message.text.strip().lower() == "yo'q" else message.text.strip()
+    data["comment"] = "" if message.text.strip().lower() in ("yo'q", "yoq") else message.text.strip()
 
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("💵 Naqd pul", callback_data="pay_cash"))
@@ -367,6 +372,10 @@ def checkout_finish_handler(call):
     payment_method = "cash" if call.data == "pay_cash" else "card"
     profile = get_profile_by_chat(call.message.chat.id)
     item = MenuItem.objects.filter(id=data["menu_item_id"]).first()
+
+    if not item:
+        bot.answer_callback_query(call.id, "Xatolik: taom topilmadi.")
+        return
 
     total = item.price * data["quantity"]
 
@@ -406,7 +415,7 @@ def checkout_finish_handler(call):
 
 
 # ═══════════════════════════════════════════════════════════════
-#  📦 BUYURTMALARIM — bekor qilinganlar chiqmaydi
+#  📦 BUYURTMALARIM
 # ═══════════════════════════════════════════════════════════════
 @bot.message_handler(func=lambda m: m.text == "📦 Buyurtmalarim")
 def my_orders_handler(message):
@@ -436,6 +445,8 @@ def view_order_handler(call):
         bot.answer_callback_query(call.id, "Buyurtma topilmadi.")
         return
 
+    profile = get_profile_by_chat(call.message.chat.id)
+
     text = (
         f"📦 <b>Buyurtma #{order.id}</b>\n"
         f"Holati: {order.get_status_display()}\n"
@@ -448,6 +459,8 @@ def view_order_handler(call):
     markup = types.InlineKeyboardMarkup()
     if order.status in CANCELLABLE_STATUSES:
         markup.add(types.InlineKeyboardButton("❌ Bekor qilish", callback_data=f"cancel_{order.id}"))
+    if is_admin(profile):
+        markup.add(types.InlineKeyboardButton("🗑 O'chirish (admin)", callback_data=f"delorder_{order.id}"))
 
     bot.answer_callback_query(call.id)
     bot.send_message(call.message.chat.id, text, parse_mode="HTML", reply_markup=markup)
@@ -470,6 +483,257 @@ def cancel_order_handler(call):
     bot.answer_callback_query(call.id, "Buyurtma bekor qilindi.")
     bot.edit_message_text(
         f"❌ <b>Buyurtma #{order.id} bekor qilindi.</b>",
+        call.message.chat.id,
+        call.message.message_id,
+        parse_mode="HTML",
+    )
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("delorder_"))
+def delete_order_handler(call):
+    profile = get_profile_by_chat(call.message.chat.id)
+    if not is_admin(profile):
+        bot.answer_callback_query(call.id, "Ruxsat yo'q.")
+        return
+
+    order = Order.objects.filter(id=call.data.replace("delorder_", "")).first()
+    if not order:
+        bot.answer_callback_query(call.id, "Buyurtma topilmadi.")
+        return
+
+    order_id = order.id
+    order.delete()
+    bot.answer_callback_query(call.id, "Buyurtma o'chirildi.")
+    bot.edit_message_text(
+        f"🗑 <b>Buyurtma #{order_id} butunlay o'chirildi.</b>",
+        call.message.chat.id,
+        call.message.message_id,
+        parse_mode="HTML",
+    )
+
+
+# ═══════════════════════════════════════════════════════════════
+#  📅 STOL BRON QILISH
+# ═══════════════════════════════════════════════════════════════
+@bot.message_handler(func=lambda m: m.text == "📅 Stol bron qilish")
+def reservation_start(message):
+    profile = get_profile_by_chat(message.chat.id)
+    if not profile:
+        bot.send_message(message.chat.id, "❗ Avval ro'yxatdan o'ting yoki kiring.", reply_markup=guest_menu_markup())
+        return
+
+    reservation_data[message.chat.id] = {}
+    msg = bot.send_message(
+        message.chat.id,
+        "📅 Bron qilmoqchi bo'lgan sanani kiriting.\n"
+        "Format: <b>kun.oy.yil</b> (masalan: 25.07.2026)",
+        parse_mode="HTML",
+    )
+    bot.register_next_step_handler(msg, reservation_get_date)
+
+
+def reservation_get_date(message):
+    text = message.text.strip()
+    try:
+        date_obj = datetime.strptime(text, "%d.%m.%Y").date()
+    except ValueError:
+        msg = bot.send_message(message.chat.id, "❗ Sana formati noto'g'ri. Masalan: 25.07.2026 ko'rinishida yuboring:")
+        bot.register_next_step_handler(msg, reservation_get_date)
+        return
+
+    if date_obj < datetime.now().date():
+        msg = bot.send_message(message.chat.id, "❗ O'tgan sanani tanlab bo'lmaydi. Qaytadan kiriting:")
+        bot.register_next_step_handler(msg, reservation_get_date)
+        return
+
+    reservation_data[message.chat.id]["date"] = date_obj
+    show_available_times(message.chat.id, date_obj)
+
+
+def show_available_times(chat_id, date_obj):
+    booked_times = set(Reservation.objects.filter(date=date_obj).values_list("time", flat=True))
+    booked_times_str = {t.strftime("%H:%M") for t in booked_times}
+
+    markup = types.InlineKeyboardMarkup(row_width=3)
+    buttons = []
+    for slot in WORKING_HOURS:
+        if slot in booked_times_str:
+            buttons.append(types.InlineKeyboardButton(f"🔴 {slot}", callback_data="slot_taken"))
+        else:
+            buttons.append(types.InlineKeyboardButton(f"🟢 {slot}", callback_data=f"slot_{slot}"))
+    markup.add(*buttons)
+
+    bot.send_message(
+        chat_id,
+        f"📅 <b>{date_obj.strftime('%d.%m.%Y')}</b> kuni uchun bo'sh vaqtlar:\n"
+        f"🟢 — bo'sh   🔴 — band",
+        parse_mode="HTML",
+        reply_markup=markup,
+    )
+
+
+@bot.callback_query_handler(func=lambda call: call.data == "slot_taken")
+def slot_taken_handler(call):
+    bot.answer_callback_query(call.id, "❗ Bu vaqt band. Boshqa vaqtni tanlang.")
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("slot_") and call.data != "slot_taken")
+def slot_selected_handler(call):
+    time_str = call.data.replace("slot_", "")
+    data = reservation_data.get(call.message.chat.id)
+
+    if not data or "date" not in data:
+        bot.answer_callback_query(call.id, "Xatolik. Qaytadan /start bosing.")
+        return
+
+    time_obj = datetime.strptime(time_str, "%H:%M").time()
+    already_taken = Reservation.objects.filter(date=data["date"], time=time_obj).exists()
+    if already_taken:
+        bot.answer_callback_query(call.id, "❗ Afsuski, bu vaqtni boshqa mijoz band qilib ulgurdi.")
+        show_available_times(call.message.chat.id, data["date"])
+        return
+
+    data["time"] = time_obj
+    bot.answer_callback_query(call.id)
+
+    markup = types.InlineKeyboardMarkup()
+    for value, label in Reservation.GUEST_CHOICES:
+        markup.add(types.InlineKeyboardButton(label, callback_data=f"guests_{value}"))
+    bot.send_message(call.message.chat.id, "👥 Nechta kishi bo'lasiz?", reply_markup=markup)
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("guests_"))
+def reservation_get_guests(call):
+    guests_value = call.data.replace("guests_", "")
+    data = reservation_data.get(call.message.chat.id)
+    if not data:
+        bot.answer_callback_query(call.id, "Xatolik. Qaytadan /start bosing.")
+        return
+
+    data["guests"] = guests_value
+    bot.answer_callback_query(call.id)
+
+    msg = bot.send_message(call.message.chat.id, "💬 Maxsus so'rovlaringiz bormi? (bo'lmasa \"yo'q\" deb yozing):")
+    bot.register_next_step_handler(msg, reservation_get_requests)
+
+
+def reservation_get_requests(message):
+    data = reservation_data.get(message.chat.id)
+    if not data:
+        bot.send_message(message.chat.id, "Xatolik. Qaytadan /start bosing.")
+        return
+
+    special_requests = "" if message.text.strip().lower() in ("yo'q", "yoq") else message.text.strip()
+    profile = get_profile_by_chat(message.chat.id)
+
+    if Reservation.objects.filter(date=data["date"], time=data["time"]).exists():
+        bot.send_message(message.chat.id, "❗ Afsuski, bu vaqt band bo'lib qoldi. Qaytadan /start orqali urinib ko'ring.")
+        reservation_data.pop(message.chat.id, None)
+        return
+
+    reservation = Reservation.objects.create(
+        full_name=f"{profile.user.first_name} {profile.user.last_name}".strip(),
+        phone=profile.phone,
+        email=profile.user.email or "no-email@example.com",
+        guests=data["guests"],
+        date=data["date"],
+        time=data["time"],
+        special_requests=special_requests,
+        is_confirmed=False,
+    )
+
+    bot.send_message(
+        message.chat.id,
+        f"✅ <b>Bron qabul qilindi!</b>\n\n"
+        f"📅 Sana: {reservation.date.strftime('%d.%m.%Y')}\n"
+        f"⏰ Vaqt: {reservation.time.strftime('%H:%M')}\n"
+        f"👥 Mehmonlar: {reservation.get_guests_display()}\n\n"
+        f"Tez orada tasdiqlaymiz 🎉",
+        parse_mode="HTML",
+        reply_markup=main_menu_markup(profile),
+    )
+
+    notify_admin_new_reservation(reservation)
+    reservation_data.pop(message.chat.id, None)
+
+
+def notify_admin_new_reservation(reservation):
+    if not ADMIN_CHAT_ID:
+        return
+    try:
+        bot.send_message(
+            ADMIN_CHAT_ID,
+            f"📅 <b>Yangi stol broni!</b>\n"
+            f"{reservation.full_name} — {reservation.date.strftime('%d.%m.%Y')} {reservation.time.strftime('%H:%M')}\n"
+            f"👥 {reservation.get_guests_display()}",
+            parse_mode="HTML",
+        )
+    except Exception as e:
+        print(f"Adminga xabar yuborilmadi: {e}")
+
+# ═══════════════════════════════════════════════════════════════
+#  🗓 BRONLARIM
+# ═══════════════════════════════════════════════════════════════
+@bot.message_handler(func=lambda m: m.text == "🗓 Bronlarim")
+def my_reservations_handler(message):
+    profile = get_profile_by_chat(message.chat.id)
+    if not profile:
+        bot.send_message(message.chat.id, "❗ Avval ro'yxatdan o'ting yoki kiring.", reply_markup=guest_menu_markup())
+        return
+
+    reservations = Reservation.objects.filter(
+        phone=profile.phone, date__gte=datetime.now().date()
+    ).order_by("date", "time")
+
+    if not reservations:
+        bot.send_message(message.chat.id, "📭 Sizda faol bronlar yo'q.")
+        return
+
+    markup = types.InlineKeyboardMarkup()
+    for r in reservations:
+        status = "✅" if r.is_confirmed else "⏳"
+        markup.add(types.InlineKeyboardButton(
+            f"{status} {r.date.strftime('%d.%m.%Y')} {r.time.strftime('%H:%M')} — {r.get_guests_display()}",
+            callback_data=f"viewres_{r.id}"
+        ))
+    bot.send_message(message.chat.id, "🗓 <b>Sizning bronlaringiz:</b>", parse_mode="HTML", reply_markup=markup)
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("viewres_"))
+def view_reservation_handler(call):
+    reservation = Reservation.objects.filter(id=call.data.replace("viewres_", "")).first()
+    if not reservation:
+        bot.answer_callback_query(call.id, "Bron topilmadi.")
+        return
+
+    text = (
+        f"📅 <b>Bron</b>\n"
+        f"Sana: {reservation.date.strftime('%d.%m.%Y')}\n"
+        f"Vaqt: {reservation.time.strftime('%H:%M')}\n"
+        f"Mehmonlar: {reservation.get_guests_display()}\n"
+        f"Holati: {'✅ Tasdiqlangan' if reservation.is_confirmed else '⏳ Kutilmoqda'}\n"
+    )
+    if reservation.special_requests:
+        text += f"So'rov: {reservation.special_requests}\n"
+
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("❌ Bekor qilish", callback_data=f"cancelres_{reservation.id}"))
+
+    bot.answer_callback_query(call.id)
+    bot.send_message(call.message.chat.id, text, parse_mode="HTML", reply_markup=markup)
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("cancelres_"))
+def cancel_reservation_handler(call):
+    reservation = Reservation.objects.filter(id=call.data.replace("cancelres_", "")).first()
+    if not reservation:
+        bot.answer_callback_query(call.id, "Bron topilmadi.")
+        return
+
+    reservation.delete()
+    bot.answer_callback_query(call.id, "Bron bekor qilindi.")
+    bot.edit_message_text(
+        "❌ <b>Bron bekor qilindi.</b>",
         call.message.chat.id,
         call.message.message_id,
         parse_mode="HTML",
@@ -527,15 +791,18 @@ def admin_panel_handler(message):
         bot.send_message(message.chat.id, "❗ Sizda admin huquqi yo'q.")
         return
 
+    active_orders = Order.objects.exclude(status="cancelled").count()
+    upcoming_reservations = Reservation.objects.filter(date__gte=datetime.now().date()).count()
+
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("➕ Mahsulot qo'shish", callback_data="admin_add_item"))
     markup.add(types.InlineKeyboardButton("➕ Kategoriya qo'shish", callback_data="admin_add_category"))
     markup.add(types.InlineKeyboardButton("➕ Oshpaz qo'shish", callback_data="admin_add_chef"))
-    markup.add(types.InlineKeyboardButton("📋 Barcha buyurtmalar", callback_data="admin_all_orders"))
+    markup.add(types.InlineKeyboardButton(f"📋 Buyurtmalar ({active_orders})", callback_data="admin_all_orders"))
+    markup.add(types.InlineKeyboardButton(f"📅 Bronlar ({upcoming_reservations})", callback_data="admin_all_reservations"))
     bot.send_message(message.chat.id, "⚙️ <b>Admin panel</b>", parse_mode="HTML", reply_markup=markup)
 
 
-# ── Kategoriya qo'shish ──
 @bot.callback_query_handler(func=lambda call: call.data == "admin_add_category")
 def admin_add_category_start(call):
     profile = get_profile_by_chat(call.message.chat.id)
@@ -555,7 +822,6 @@ def admin_add_category_name(message):
     bot.send_message(message.chat.id, f"✅ <b>{name}</b> kategoriyasi qo'shildi.", parse_mode="HTML")
 
 
-# ── Oshpaz qo'shish ──
 @bot.callback_query_handler(func=lambda call: call.data == "admin_add_chef")
 def admin_add_chef_start(call):
     profile = get_profile_by_chat(call.message.chat.id)
@@ -587,12 +853,9 @@ def admin_chef_get_experience(message, data):
     data["experience"] = int(message.text.strip())
     order = Chef.objects.count()
     Chef.objects.create(name=data["name"], role=data["role"], experience=data["experience"], order=order)
-    bot.send_message(message.chat.id,
-                     f"✅ Oshpaz <b>{data['name']}</b> qo'shildi.\n(Fotosini keyinroq admin paneldan qo'shishingiz mumkin.)",
-                     parse_mode="HTML")
+    bot.send_message(message.chat.id, f"✅ Oshpaz <b>{data['name']}</b> qo'shildi.", parse_mode="HTML")
 
 
-# ── Mahsulot (MenuItem) qo'shish ──
 @bot.callback_query_handler(func=lambda call: call.data == "admin_add_item")
 def admin_add_item_start(call):
     profile = get_profile_by_chat(call.message.chat.id)
@@ -666,7 +929,6 @@ def admin_item_get_photo(message, data):
     bot.send_message(message.chat.id, f"✅ <b>{item.name}</b> menyuga qo'shildi!", parse_mode="HTML")
 
 
-# ── Barcha buyurtmalarni ko'rish (admin) ──
 @bot.callback_query_handler(func=lambda call: call.data == "admin_all_orders")
 def admin_all_orders_handler(call):
     profile = get_profile_by_chat(call.message.chat.id)
@@ -689,6 +951,29 @@ def admin_all_orders_handler(call):
     bot.send_message(call.message.chat.id, "📋 <b>Barcha faol buyurtmalar:</b>", parse_mode="HTML", reply_markup=markup)
 
 
+@bot.callback_query_handler(func=lambda call: call.data == "admin_all_reservations")
+def admin_all_reservations_handler(call):
+    profile = get_profile_by_chat(call.message.chat.id)
+    if not is_admin(profile):
+        bot.answer_callback_query(call.id, "Ruxsat yo'q.")
+        return
+
+    bot.answer_callback_query(call.id)
+    reservations = Reservation.objects.filter(date__gte=datetime.now().date()).order_by("date", "time")[:15]
+    if not reservations:
+        bot.send_message(call.message.chat.id, "📭 Hozircha bronlar yo'q.")
+        return
+
+    markup = types.InlineKeyboardMarkup()
+    for r in reservations:
+        status = "✅" if r.is_confirmed else "⏳"
+        markup.add(types.InlineKeyboardButton(
+            f"{status} {r.date.strftime('%d.%m.%Y')} {r.time.strftime('%H:%M')} — {r.full_name}",
+            callback_data=f"viewres_{r.id}"
+        ))
+    bot.send_message(call.message.chat.id, "📅 <b>Barcha bronlar:</b>", parse_mode="HTML", reply_markup=markup)
+
+
 # ═══════════════════════════════════════════════════════════════
 #  Noma'lum xabarlar
 # ═══════════════════════════════════════════════════════════════
@@ -705,11 +990,14 @@ def fallback_handler(message):
 def notify_admin_new_order(order):
     if not ADMIN_CHAT_ID:
         return
-    bot.send_message(
-        ADMIN_CHAT_ID,
-        f"🆕 <b>Yangi buyurtma!</b>\n"
-        f"Buyurtma #{order.id} — {order.full_name}\n"
-        f"Holati: {order.get_status_display()}\n"
-        f"Narx: {order.total_price} so'm",
-        parse_mode="HTML",
-    )
+    try:
+        bot.send_message(
+            ADMIN_CHAT_ID,
+            f"🆕 <b>Yangi buyurtma!</b>\n"
+            f"Buyurtma #{order.id} — {order.full_name}\n"
+            f"Holati: {order.get_status_display()}\n"
+            f"Narx: {order.total_price} so'm",
+            parse_mode="HTML",
+        )
+    except Exception as e:
+        print(f"Adminga xabar yuborilmadi: {e}")
