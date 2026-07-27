@@ -29,6 +29,9 @@ INSTALLED_APPS = [
     # Bizning ilova
     'shop',
     "telegram_bot",
+    "rest_framework",
+    "rest_framework_simplejwt",
+    "corsheaders",
 ]
 
 # ─── MIDDLEWARE ───────────────────────────────────────────────────────────────
@@ -46,6 +49,13 @@ MIDDLEWARE = [
 ROOT_URLCONF = 'config.urls'
 
 # ─── TEMPLATE SOZLAMALARI ─────────────────────────────────────────────────────
+
+from datetime import timedelta
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
+}
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',

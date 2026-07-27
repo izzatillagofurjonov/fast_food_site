@@ -12,6 +12,7 @@ from shop.models import Category, MenuItem, Chef, Order, OrderItem, UserProfile,
 
 BOT_TOKEN = config("TELEGRAM_BOT_TOKEN")
 ADMIN_CHAT_ID = config("TELEGRAM_ADMIN_CHAT_ID", default="")
+MINIAPP_URL = config("TELEGRAM_MINIAPP_URL", default="")
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -59,23 +60,39 @@ def guest_menu_markup():
 def start_handler(message):
     profile = get_profile_by_chat(message.chat.id)
 
+    webapp_markup = None
+    if MINIAPP_URL:
+        webapp_markup = types.InlineKeyboardMarkup()
+        webapp_markup.add(
+            types.InlineKeyboardButton(
+                "🍽️ Ilovani ochish",
+                web_app=types.WebAppInfo(url=MINIAPP_URL)
+            )
+        )
+
     if profile:
         bot.send_message(
             message.chat.id,
             f"👋 Xush kelibsiz, <b>{profile.user.first_name or profile.user.username}</b>!\n"
             f"Sarab Restaurant botiga qaytganingizdan xursandmiz 🍔🎉",
             parse_mode="HTML",
-            reply_markup=main_menu_markup(profile),
+            reply_markup=webapp_markup or main_menu_markup(profile),
         )
     else:
         bot.send_message(
             message.chat.id,
             "👋 Assalomu alaykum! <b>Sarab Restaurant</b> botiga xush kelibsiz 🍽️\n\n"
-            "Buyurtma berish uchun avval ro'yxatdan o'tishingiz kerak bo'ladi.",
+            "Quyidagi tugma orqali ilovani oching yoki ro'yxatdan o'ting:",
             parse_mode="HTML",
-            reply_markup=guest_menu_markup(),
+            reply_markup=webapp_markup or guest_menu_markup(),
         )
 
+    if webapp_markup:
+        bot.send_message(
+            message.chat.id,
+            "Yoki quyidagi oddiy menyudan foydalaning:",
+            reply_markup=main_menu_markup(profile) if profile else guest_menu_markup(),
+        )
 
 # ═══════════════════════════════════════════════════════════════
 #  🚪 CHIQISH
