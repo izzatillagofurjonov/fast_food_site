@@ -56,6 +56,41 @@ def guest_menu_markup():
 # ═══════════════════════════════════════════════════════════════
 #  /start
 # ═══════════════════════════════════════════════════════════════
+
+
+def cancel_if_menu_command(message):
+    text = message.text or ""
+    menu_commands = {
+        "🍽 Menyu": menu_handler,
+        "📦 Buyurtmalarim": my_orders_handler,
+        "👨‍🍳 Oshpazlar": chefs_handler,
+        "👤 Profilim": profile_handler,
+        "📅 Stol bron qilish": reservation_start,
+        "🗓 Bronlarim": my_reservations_handler,
+        "⚙️ Admin panel": admin_panel_handler,
+        "🚪 Chiqish": logout_handler,
+        "📝 Ro'yxatdan o'tish": register_start,
+        "🔑 Kirish": login_start,
+    }
+    if text in menu_commands:
+        menu_commands[text](message)
+        return True
+    if text.startswith("/"):
+        if text.startswith("/start"):
+            start_handler(message)
+        return True
+    return False
+
+
+def guarded_step(func):
+    def wrapper(message, *args, **kwargs):
+        if cancel_if_menu_command(message):
+            return
+        return func(message, *args, **kwargs)
+    return wrapper
+
+
+
 @bot.message_handler(commands=["start"])
 def start_handler(message):
     profile = get_profile_by_chat(message.chat.id)
@@ -124,25 +159,25 @@ def register_start(message):
     msg = bot.send_message(message.chat.id, "👤 Ismingiz va familiyangizni yuboring (masalan: Aliyev Vali):")
     bot.register_next_step_handler(msg, register_get_fullname)
 
-
+@guarded_step
 def register_get_fullname(message):
     data = {"full_name": message.text.strip()}
     msg = bot.send_message(message.chat.id, "📱 Telefon raqamingizni yuboring (masalan: +998901234567):")
     bot.register_next_step_handler(msg, register_get_phone, data)
 
-
+@guarded_step
 def register_get_phone(message, data):
     data["phone"] = message.text.strip()
     msg = bot.send_message(message.chat.id, "🏠 Yashash manzilingizni yuboring:")
     bot.register_next_step_handler(msg, register_get_address, data)
 
-
+@guarded_step
 def register_get_address(message, data):
     data["address"] = message.text.strip()
     msg = bot.send_message(message.chat.id, "🔑 O'zingizga username (login) o'ylab yuboring:")
     bot.register_next_step_handler(msg, register_get_username, data)
 
-
+@guarded_step
 def register_get_username(message, data):
     username = message.text.strip()
     if User.objects.filter(username=username).exists():
@@ -153,7 +188,7 @@ def register_get_username(message, data):
     msg = bot.send_message(message.chat.id, "🔒 Parol o'ylab yuboring (kamida 6 ta belgi):")
     bot.register_next_step_handler(msg, register_get_password, data)
 
-
+@guarded_step
 def register_get_password(message, data):
     password = message.text.strip()
     if len(password) < 6:
@@ -196,7 +231,7 @@ def login_start(message):
     msg = bot.send_message(message.chat.id, "👤 Username kiriting:")
     bot.register_next_step_handler(msg, login_get_username)
 
-
+@guarded_step
 def login_get_username(message):
     username = message.text.strip()
     user = User.objects.filter(username=username).first()
@@ -207,7 +242,7 @@ def login_get_username(message):
     msg = bot.send_message(message.chat.id, "🔒 Parolingizni kiriting:")
     bot.register_next_step_handler(msg, login_get_password, username)
 
-
+@guarded_step
 def login_get_password(message, username):
     user = User.objects.filter(username=username).first()
     if not check_password(message.text.strip(), user.password):
@@ -330,7 +365,7 @@ def order_start_handler(call):
     )
     bot.register_next_step_handler(msg, checkout_get_quantity)
 
-
+@guarded_step
 def checkout_get_quantity(message):
     if not message.text.strip().isdigit() or int(message.text.strip()) < 1:
         msg = bot.send_message(message.chat.id, "❗ Iltimos, musbat son kiriting (masalan: 2):")
@@ -347,28 +382,28 @@ def checkout_get_quantity(message):
     )
     bot.register_next_step_handler(msg, checkout_get_fullname)
 
-
+@guarded_step
 def checkout_get_fullname(message):
     data = checkout_data.get(message.chat.id)
     data["full_name"] = message.text.strip()
     msg = bot.send_message(message.chat.id, f"📱 Telefon raqami (hozirgi: {data['phone']}):")
     bot.register_next_step_handler(msg, checkout_get_phone)
 
-
+@guarded_step
 def checkout_get_phone(message):
     data = checkout_data.get(message.chat.id)
     data["phone"] = message.text.strip()
     msg = bot.send_message(message.chat.id, f"🏠 Yetkazib berish manzili (hozirgi: {data['address']}):")
     bot.register_next_step_handler(msg, checkout_get_address)
 
-
+@guarded_step
 def checkout_get_address(message):
     data = checkout_data.get(message.chat.id)
     data["address"] = message.text.strip()
     msg = bot.send_message(message.chat.id, "💬 Buyurtmaga izoh (bo'lmasa \"yo'q\" deb yozing):")
     bot.register_next_step_handler(msg, checkout_get_comment)
 
-
+@guarded_step
 def checkout_get_comment(message):
     data = checkout_data.get(message.chat.id)
     data["comment"] = "" if message.text.strip().lower() in ("yo'q", "yoq") else message.text.strip()
@@ -548,7 +583,7 @@ def reservation_start(message):
     )
     bot.register_next_step_handler(msg, reservation_get_date)
 
-
+@guarded_step
 def reservation_get_date(message):
     text = message.text.strip()
     try:
@@ -634,6 +669,7 @@ def reservation_get_guests(call):
     bot.register_next_step_handler(msg, reservation_get_requests)
 
 
+@guarded_step
 def reservation_get_requests(message):
     data = reservation_data.get(message.chat.id)
     if not data:
@@ -831,6 +867,7 @@ def admin_add_category_start(call):
     bot.register_next_step_handler(msg, admin_add_category_name)
 
 
+@guarded_step
 def admin_add_category_name(message):
     name = message.text.strip()
     slug = name.lower().replace(" ", "-")
@@ -850,18 +887,21 @@ def admin_add_chef_start(call):
     bot.register_next_step_handler(msg, admin_chef_get_name)
 
 
+@guarded_step
 def admin_chef_get_name(message):
     data = {"name": message.text.strip()}
     msg = bot.send_message(message.chat.id, "💼 Lavozimini kiriting (masalan: Head Chef):")
     bot.register_next_step_handler(msg, admin_chef_get_role, data)
 
 
+@guarded_step
 def admin_chef_get_role(message, data):
     data["role"] = message.text.strip()
     msg = bot.send_message(message.chat.id, "🏅 Tajribasini yil bilan kiriting (masalan: 5):")
     bot.register_next_step_handler(msg, admin_chef_get_experience, data)
 
 
+@guarded_step
 def admin_chef_get_experience(message, data):
     if not message.text.strip().isdigit():
         msg = bot.send_message(message.chat.id, "❗ Faqat son kiriting:")
@@ -893,6 +933,7 @@ def admin_add_item_start(call):
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("admincat_"))
+@guarded_step
 def admin_item_get_category(call):
     category_id = call.data.replace("admincat_", "")
     data = {"category_id": category_id}
@@ -900,19 +941,19 @@ def admin_item_get_category(call):
     msg = bot.send_message(call.message.chat.id, "🍴 Taom nomini kiriting:")
     bot.register_next_step_handler(msg, admin_item_get_name, data)
 
-
+@guarded_step
 def admin_item_get_name(message, data):
     data["name"] = message.text.strip()
     msg = bot.send_message(message.chat.id, "📝 Tavsifini kiriting:")
     bot.register_next_step_handler(msg, admin_item_get_description, data)
 
-
+@guarded_step
 def admin_item_get_description(message, data):
     data["description"] = message.text.strip()
     msg = bot.send_message(message.chat.id, "💵 Narxini kiriting (faqat son, masalan: 25000):")
     bot.register_next_step_handler(msg, admin_item_get_price, data)
 
-
+@guarded_step
 def admin_item_get_price(message, data):
     try:
         data["price"] = float(message.text.strip())
@@ -923,7 +964,7 @@ def admin_item_get_price(message, data):
     msg = bot.send_message(message.chat.id, "🖼 Taom rasmini yuboring:")
     bot.register_next_step_handler(msg, admin_item_get_photo, data)
 
-
+@guarded_step
 def admin_item_get_photo(message, data):
     if not message.photo:
         msg = bot.send_message(message.chat.id, "❗ Iltimos, rasm yuboring:")
